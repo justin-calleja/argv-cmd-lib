@@ -7,6 +7,7 @@
   "files": [
     "lib/*"
   ],
+  "repository": "justin-calleja/argv-cmd-lib",
   "scripts": {
     "build": "run-s clean compile",
     "clean": "rimraf lib",
@@ -16,8 +17,15 @@
     "test": "jest",
     "test:watch": "npm run test -- --watch"
   },
-  "keywords": [],
-  "author": "Justin Calleja",
+  "keywords": [
+    "argv",
+    "args",
+    "cmd",
+    "command",
+    "cmds",
+    "commands"
+  ],
+  "author": "Justin Calleja <calleja.justin@gmail.com>",
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^26.0.22",
