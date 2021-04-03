@@ -1,6 +1,6 @@
 {
   "name": "argv-cmd-lib",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Library to parse commands out of a string array like process.argv",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
