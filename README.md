@@ -335,3 +335,7 @@ Finally, to get a better idea of the result of parsing `process.argv` in this ex
 ```sh
 node ./example-adhoc/index.js put something here -h server start -p 4000
 ```
+
+- - -
+
+You can also refer to [cli-using-argv-cmd-lib](https://github.com/justin-calleja/cli-using-argv-cmd-lib) which consumes this lib using TS instead. It also has a package.json `bin` entry so you can try `npm link .` to run the app as a normal executable.
