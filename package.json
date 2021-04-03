@@ -23,7 +23,9 @@
     "cmd",
     "command",
     "cmds",
-    "commands"
+    "commands",
+    "parser",
+    "parse"
   ],
   "author": "Justin Calleja <calleja.justin@gmail.com>",
   "license": "ISC",

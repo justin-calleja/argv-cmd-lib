@@ -300,7 +300,7 @@ const parsedArgvs = [
 
 ### What if you want to parse all matched command argvs? e.g. to list unrecognized commands
 
-The approach taken about ends up only parsing the options for the last command to match in `process.argv`. If your app requires parsing all command argvs (because e.g. certain behaviour like logging verbosity or listing of unrecognized commands depends on it), then you can do something like this instead:
+The approach taken above ends up only parsing the options for the last command to match in `process.argv`. If your app requires parsing all command argvs (because e.g. certain behaviour like logging verbosity or listing of unrecognized commands depends on it), then you can do something like this instead:
 
 ```js
   const namedArgvs = getNamedArgvs(parsedCmd);
@@ -326,7 +326,7 @@ The approach taken about ends up only parsing the options for the last command t
   const parsedArgvLookup = Object.fromEntries(namedParsedArgvs);
 ```
 
-… and then pass `namedParsedArgvs` to each command instead of the previous version which only passed `namedArgvs` (the yet unparsed `argv`s). The example in [./example-adhoc](./example-adhoc) directory takes this approach.
+… and then pass `parsedArgvLookup` to each command instead of the previous version which only passed `argvLookup`. The example in [./example-adhoc](./example-adhoc) directory takes this approach.
 
 ### Try running example-adhoc/index.js to see the output it prints out
 

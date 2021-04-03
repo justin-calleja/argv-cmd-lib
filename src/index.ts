@@ -39,7 +39,7 @@ export function isParsedCmd(cmd: Cmd | ParsedCmd): cmd is ParsedCmd {
  *
  * The returned ParsedCmd can be used with other functions to determine which command your app should run.
  *
- * Throws if the given command or any of its sub commands is missing a name.
+ * Throws if the given command (or any of its sub commands) is missing a name.
  */
 export function parseCmdOrThrow(
   // NOTE: unfortunately, Partial<Cmd> does not make cmd.subCmds also of type Partial<Cmd> i.e.
