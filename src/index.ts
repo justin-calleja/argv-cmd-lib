@@ -94,7 +94,10 @@ export function parseCmd(
   try {
     return parseCmdOrThrow(partialCmd, argv);
   } catch (err) {
-    return err.message;
+    if (err instanceof Error) {
+      return err.message;
+    }
+    return 'Caught unknown error.';
   }
 }
 
