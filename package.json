@@ -5,7 +5,8 @@
   "main": "lib",
   "types": "lib",
   "files": [
-    "lib/*"
+    "lib",
+    "!lib/__tests__"
   ],
   "repository": "justin-calleja/argv-cmd-lib",
   "scripts": {
