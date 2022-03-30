@@ -1,98 +1,121 @@
-function removeLastNChars(str: string, n: number) {
-  return str.slice(0, -n);
-}
-
-function createRegexpStr(subCmds: string) {
-  return `^[ \t]*(.*?)[ \t]*(${subCmds})[ \t]*(.*?)[ \t]*$`;
-}
+type SubCmd = { path: string; hasChildren: boolean };
 
 export type CmdArgv = [pathToCmd: string, argv: string[]];
 
 export type Opts = {
-  ext?: string;
-  pathSeparator?: string;
-  rootCmd?: string;
-  basePath?: string;
+  ext: string;
+  pathSeparator: string;
+  indexFile: string;
+  basePath: string;
+  rootCmdPath: string;
+};
+
+export const defaultOpts: Opts = {
+  ext: '.js',
+  indexFile: 'index',
+  pathSeparator: '/',
+  basePath: '.',
+  rootCmdPath: 'index.js',
+};
+
+const createRegexpStr = (subCmds: string) =>
+  `^[ \t]*(.*?)[ \t]*(${subCmds})[ \t]*(.*?)[ \t]*$`;
+
+const expandSubCmdPath = (opts: Opts, subCmd?: SubCmd) => {
+  let cmdPath = `${opts.basePath}${opts.pathSeparator}`;
+
+  if (subCmd?.path === undefined) {
+    return `${cmdPath}${opts.rootCmdPath}`;
+  }
+
+  cmdPath += subCmd.path;
+  cmdPath += subCmd.hasChildren
+    ? `${opts.pathSeparator}${opts.indexFile}${opts.ext}`
+    : opts.ext;
+  return cmdPath;
 };
 
 export function groupArgvByCmds(
   argv: string[],
   cmdPaths: string[],
-  {
-    ext = '.js',
-    pathSeparator = '/',
-    rootCmd = 'index',
-    basePath = '.',
-  }: Opts = {},
+  partialOpts: Partial<Opts> = {},
 ): CmdArgv[] {
-  const argvStr = argv.join(' ');
-  const cmdTable: string[][] = cmdPaths.map((path) =>
-    removeLastNChars(path, ext.length).split(pathSeparator),
-  );
+  const opts = {
+    ...defaultOpts,
+    ...partialOpts,
+  };
 
-  if (cmdTable.length === 0) {
-    return [
-      [rootCmd === '' ? basePath : `${basePath}${pathSeparator}${rootCmd}`, []],
-    ];
+  const argvStr = argv.join(' ');
+
+  // create cmdTable from cmdPaths, leaving out the rootCmdPath
+  const cmdTable: string[][] = [[]];
+  for (let i = 0; i < cmdPaths.length; i++) {
+    const cmdPath = cmdPaths[i];
+    if (cmdPath === opts.rootCmdPath) {
+      continue;
+    }
+    cmdTable.push(cmdPath.split(opts.pathSeparator));
   }
 
-  return _groupArgvByCmds(
-    0,
-    argvStr,
-    cmdTable,
-    basePath,
-    pathSeparator,
-    rootCmd,
-  );
+  // This is just an "optimisation". If cmdTable.length is 0 it means there's
+  // only the root command ro run.
+  if (cmdTable.length === 0) {
+    return [[`${opts.basePath}${opts.pathSeparator}${opts.rootCmdPath}`, argv]];
+  }
+
+  return _groupArgvByCmds(0, argvStr, cmdTable, opts);
 }
 
 function _groupArgvByCmds(
   colIndex: number,
   argvStr: string,
   cmdTable: string[][],
-  cmdToRunBasePath: string,
-  pathSeparator: string,
-  cmdToRun: string,
+  opts: Opts,
   result: CmdArgv[] = [],
+  subCmd?: SubCmd,
 ): CmdArgv[] {
-  const subCmdsSet = new Set();
+  const currentCmdPath = expandSubCmdPath(opts, subCmd);
+
+  const cmdNamesEndingWithExt: { [cmdName: string]: boolean } = {};
   for (let rowIndex = 0; rowIndex < cmdTable.length; rowIndex++) {
-    subCmdsSet.add(cmdTable[rowIndex][colIndex]);
+    const cmd = cmdTable[rowIndex][colIndex];
+    if (cmd !== undefined) {
+      const cmdEndsWithExt = cmd.endsWith(opts.ext);
+      cmdNamesEndingWithExt[
+        cmdEndsWithExt ? cmd.slice(0, -opts.ext.length) : cmd
+      ] = cmdEndsWithExt;
+    }
   }
+
   const regexpStr = createRegexpStr(
-    Array.from(subCmdsSet).filter(Boolean).join('|'),
+    Object.keys(cmdNamesEndingWithExt).join('|'),
   );
   const regexp = new RegExp(regexpStr);
   const regexpResult = regexp.exec(argvStr);
 
   if (regexpResult === null) {
-    result.push([
-      cmdToRun === ''
-        ? cmdToRunBasePath
-        : `${cmdToRunBasePath}${pathSeparator}${cmdToRun}`,
-      argvStr.split(' ').filter(Boolean),
-    ]);
+    result.push([currentCmdPath, argvStr.split(' ').filter(Boolean)]);
     return result;
   }
 
-  const [_, cmdToRunArgvStr, subCmd, remainingArgvStr] = regexpResult;
-  if (cmdToRunArgvStr !== undefined) {
-    result.push([
-      cmdToRun === ''
-        ? cmdToRunBasePath
-        : `${cmdToRunBasePath}${pathSeparator}${cmdToRun}`,
-      cmdToRunArgvStr.split(' ').filter(Boolean),
-    ]);
-    return _groupArgvByCmds(
-      colIndex + 1,
-      remainingArgvStr,
-      cmdTable,
-      `${cmdToRunBasePath}${pathSeparator}${subCmd}`,
-      pathSeparator,
-      '',
-      result,
-    );
-  }
-
-  return result;
+  const [_, cmdArgv, nextCmd, remainingArgvStr] = regexpResult;
+  result.push([currentCmdPath, cmdArgv.split(' ').filter(Boolean)]);
+  return _groupArgvByCmds(
+    colIndex + 1,
+    remainingArgvStr,
+    cmdTable,
+    opts,
+    result,
+    subCmd === undefined
+      ? {
+          path: nextCmd,
+          hasChildren: !cmdNamesEndingWithExt[nextCmd],
+        }
+      : {
+          path: `${subCmd.path}${opts.pathSeparator}${nextCmd}`,
+          hasChildren: !cmdNamesEndingWithExt[nextCmd],
+        },
+  );
 }
+
+export default groupArgvByCmds;
