@@ -1,8 +1,6 @@
-module.exports = {
-  roots: ['<rootDir>/src/__tests__'],
+export default {
+  roots: ['<rootDir>/lib/__tests__'],
   setupFilesAfterEnv: [],
-  testMatch: ['**/?(*.)+(spec|test).+(ts|js)'],
-  transform: {
-    '^.+\\.(ts)$': 'ts-jest',
-  },
+  testMatch: ['**/?(*.)+(spec|test).+(js)'],
+  transform: {},
 };

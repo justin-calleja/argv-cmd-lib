@@ -1,3 +1,5 @@
+import createRegexpStrFromSubCmds from './createRegexpStrFromSubCmds.js';
+
 type SubCmd = { path: string; hasChildren: boolean };
 
 export type CmdArgv = [pathToCmd: string, argv: string[]];
@@ -9,17 +11,6 @@ export type Opts = {
   basePath: string;
   rootCmdPath: string;
 };
-
-export const defaultOpts: Opts = {
-  ext: '.js',
-  indexFile: 'index',
-  pathSeparator: '/',
-  basePath: '.',
-  rootCmdPath: 'index.js',
-};
-
-const createRegexpStr = (subCmds: string) =>
-  `^[ \t]*(.*?)[ \t]*(${subCmds})[ \t]*(.*?)[ \t]*$`;
 
 const expandSubCmdPath = (opts: Opts, subCmd?: SubCmd) => {
   let cmdPath = `${opts.basePath}${opts.pathSeparator}`;
@@ -35,27 +26,41 @@ const expandSubCmdPath = (opts: Opts, subCmd?: SubCmd) => {
   return cmdPath;
 };
 
+// create cmdTable from cmdPaths, leaving out the rootCmdPath
+// or any path that ends with the index file.
+const createCmdTable = (cmdPaths: string[], opts: Opts): string[][] => {
+  const indexFile = `${opts.indexFile}${opts.ext}`;
+  const cmdTable: string[][] = [];
+  for (let i = 0; i < cmdPaths.length; i++) {
+    const cmdPath = cmdPaths[i];
+    if (cmdPath === opts.rootCmdPath || cmdPath.endsWith(indexFile)) {
+      continue;
+    }
+    cmdTable.push(cmdPath.split(opts.pathSeparator));
+  }
+  return cmdTable;
+};
+
+export const defaultOpts: Opts = {
+  ext: '.js',
+  indexFile: 'index',
+  pathSeparator: '/',
+  basePath: '.',
+  rootCmdPath: 'index.js',
+};
+
 export function groupArgvByCmds(
   argv: string[],
   cmdPaths: string[],
   partialOpts: Partial<Opts> = {},
 ): CmdArgv[] {
+  console.log('yes... latest');
   const opts = {
     ...defaultOpts,
     ...partialOpts,
   };
 
-  const argvStr = argv.join(' ');
-
-  // create cmdTable from cmdPaths, leaving out the rootCmdPath
-  const cmdTable: string[][] = [[]];
-  for (let i = 0; i < cmdPaths.length; i++) {
-    const cmdPath = cmdPaths[i];
-    if (cmdPath === opts.rootCmdPath) {
-      continue;
-    }
-    cmdTable.push(cmdPath.split(opts.pathSeparator));
-  }
+  const cmdTable = createCmdTable(cmdPaths, opts);
 
   // This is just an "optimisation". If cmdTable.length is 0 it means there's
   // only the root command ro run.
@@ -63,7 +68,7 @@ export function groupArgvByCmds(
     return [[`${opts.basePath}${opts.pathSeparator}${opts.rootCmdPath}`, argv]];
   }
 
-  return _groupArgvByCmds(0, argvStr, cmdTable, opts);
+  return _groupArgvByCmds(0, argv.join(' '), cmdTable, opts);
 }
 
 function _groupArgvByCmds(
@@ -87,8 +92,8 @@ function _groupArgvByCmds(
     }
   }
 
-  const regexpStr = createRegexpStr(
-    Object.keys(cmdNamesEndingWithExt).join('|'),
+  const regexpStr = createRegexpStrFromSubCmds(
+    Object.keys(cmdNamesEndingWithExt),
   );
   const regexp = new RegExp(regexpStr);
   const regexpResult = regexp.exec(argvStr);
@@ -98,11 +103,11 @@ function _groupArgvByCmds(
     return result;
   }
 
-  const [_, cmdArgv, nextCmd, remainingArgvStr] = regexpResult;
-  result.push([currentCmdPath, cmdArgv.split(' ').filter(Boolean)]);
+  const [_, cmdArgvAsStr, nextCmd, remainingArgvAsStr] = regexpResult;
+  result.push([currentCmdPath, cmdArgvAsStr.split(' ').filter(Boolean)]);
   return _groupArgvByCmds(
     colIndex + 1,
-    remainingArgvStr,
+    remainingArgvAsStr,
     cmdTable,
     opts,
     result,
